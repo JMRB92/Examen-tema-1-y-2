@@ -1,8 +1,8 @@
 /**
  * app.js
- * Controlador principal de la aplicación web de exámenes tipo test.
+ * Controlador principal de la aplicación web de exámenes tipo test (Versión 1.01).
  * Coordina la identificación del alumno, instrucciones, ejecución del examen,
- * recuperación tras cierre/recarga, resultados, PDF/JSON y Panel del profesor.
+ * recuperación tras cierre/recarga, resultados, PDF/JSON y Panel del profesor autenticado.
  */
 
 import {
@@ -17,7 +17,10 @@ import { loadQuestionBank } from './questions.js';
 import { ExamSession } from './exam.js';
 import { evaluateExam, downloadResultJSON } from './results.js';
 import { downloadResultPDF } from './pdf.js';
-import { TeacherPanelController } from './teacher.js';
+import { TeacherPanelController, verifyTeacherCredentials } from './teacher.js';
+
+export const APP_VERSION = '1.01';
+const TEACHER_SESSION_KEY = 'exam_test_teacher_authenticated_v101';
 
 class ExamApplication {
   constructor() {
@@ -28,12 +31,35 @@ class ExamApplication {
     this.reviewFilter = 'all';
     this.teacherController = new TeacherPanelController();
     this.activeViewId = 'view-identification';
+    this.isTeacherAuthenticated = this.readTeacherAuthSession();
+  }
+
+  readTeacherAuthSession() {
+    try {
+      return window.sessionStorage.getItem(TEACHER_SESSION_KEY) === 'true';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  writeTeacherAuthSession(isAuth) {
+    this.isTeacherAuthenticated = Boolean(isAuth);
+    try {
+      if (this.isTeacherAuthenticated) {
+        window.sessionStorage.setItem(TEACHER_SESSION_KEY, 'true');
+      } else {
+        window.sessionStorage.removeItem(TEACHER_SESSION_KEY);
+      }
+    } catch (err) {
+      // Ignorar si sessionStorage no está disponible
+    }
   }
 
   async init() {
     this.registerServiceWorker();
     this.setupConnectionIndicator();
     this.bindGlobalNavigation();
+    this.bindTeacherLoginEvents();
     this.bindIdentificationEvents();
     this.bindInstructionsEvents();
     this.bindExamEvents();
@@ -101,6 +127,12 @@ class ExamApplication {
   }
 
   switchView(viewId) {
+    // Impedir acceso al panel del profesor si no hay sesión autenticada
+    if (viewId === 'view-teacher' && !this.isTeacherAuthenticated) {
+      this.openTeacherLoginModal();
+      return;
+    }
+
     const views = [
       'view-identification',
       'view-instructions',
@@ -127,30 +159,120 @@ class ExamApplication {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  returnToStudentView() {
+    if (this.session && this.session.getState()?.status === 'in_progress') {
+      this.switchView('view-exam');
+    } else if (this.currentResult) {
+      this.switchView('view-results');
+    } else {
+      this.switchView('view-identification');
+    }
+  }
+
   bindGlobalNavigation() {
     const btnTeacher = document.getElementById('btn-open-teacher');
     const btnBackStudent = document.getElementById('btn-back-student');
+    const btnTeacherLogout = document.getElementById('btn-teacher-logout');
 
     btnTeacher?.addEventListener('click', () => {
       if (this.session && this.session.getState()?.status === 'in_progress') {
         const proceed = window.confirm(
           'Tienes un examen en curso y el temporizador seguirá contando en tiempo real. ' +
-          '¿Seguro que deseas abrir el Panel del profesor?'
+          '¿Seguro que deseas acceder al Panel del profesor?'
         );
         if (!proceed) return;
       }
+
+      if (!this.isTeacherAuthenticated) {
+        this.openTeacherLoginModal();
+        return;
+      }
+
       this.teacherController.init();
       this.switchView('view-teacher');
     });
 
     btnBackStudent?.addEventListener('click', () => {
-      if (this.session && this.session.getState()?.status === 'in_progress') {
-        this.switchView('view-exam');
-      } else if (this.currentResult) {
-        this.switchView('view-results');
-      } else {
-        this.switchView('view-identification');
+      this.returnToStudentView();
+    });
+
+    btnTeacherLogout?.addEventListener('click', () => {
+      this.writeTeacherAuthSession(false);
+      this.returnToStudentView();
+      this.showGlobalBanner('Sesión del Panel del profesor cerrada correctamente.', 'info');
+    });
+  }
+
+  // =========================================================================
+  // AUTENTICACIÓN DEL PANEL DEL PROFESOR
+  // =========================================================================
+  openTeacherLoginModal() {
+    const modal = document.getElementById('modal-teacher-login');
+    const form = document.getElementById('teacher-login-form');
+    const userInput = document.getElementById('teacher-login-user');
+    const passInput = document.getElementById('teacher-login-pass');
+    const errBox = document.getElementById('teacher-login-error');
+
+    form?.reset();
+    if (passInput) passInput.type = 'password';
+    const toggleBtn = document.getElementById('btn-toggle-teacher-pass');
+    if (toggleBtn) toggleBtn.textContent = 'Mostrar';
+    errBox?.classList.add('hidden');
+    modal?.classList.remove('hidden');
+
+    setTimeout(() => {
+      userInput?.focus();
+    }, 50);
+  }
+
+  bindTeacherLoginEvents() {
+    const modal = document.getElementById('modal-teacher-login');
+    const form = document.getElementById('teacher-login-form');
+    const userInput = document.getElementById('teacher-login-user');
+    const passInput = document.getElementById('teacher-login-pass');
+    const errBox = document.getElementById('teacher-login-error');
+    const btnCancel = document.getElementById('btn-cancel-teacher-login');
+    const btnTogglePass = document.getElementById('btn-toggle-teacher-pass');
+
+    const hideError = () => errBox?.classList.add('hidden');
+    userInput?.addEventListener('input', hideError);
+    passInput?.addEventListener('input', hideError);
+
+    btnTogglePass?.addEventListener('click', () => {
+      if (!passInput) return;
+      const isHidden = passInput.type === 'password';
+      passInput.type = isHidden ? 'text' : 'password';
+      btnTogglePass.textContent = isHidden ? 'Ocultar' : 'Mostrar';
+    });
+
+    btnCancel?.addEventListener('click', () => {
+      modal?.classList.add('hidden');
+      form?.reset();
+      hideError();
+    });
+
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = userInput?.value || '';
+      const password = passInput?.value || '';
+
+      if (!verifyTeacherCredentials(username, password)) {
+        if (errBox) {
+          errBox.textContent = 'Usuario o contraseña incorrectos. Verifica tus credenciales.';
+          errBox.classList.remove('hidden');
+        }
+        passInput?.focus();
+        passInput?.select();
+        return;
       }
+
+      this.writeTeacherAuthSession(true);
+      modal?.classList.add('hidden');
+      form.reset();
+      hideError();
+      this.hideGlobalBanner();
+      this.teacherController.init();
+      this.switchView('view-teacher');
     });
   }
 
@@ -162,7 +284,6 @@ class ExamApplication {
 
     if (pendingExam) {
       const now = Date.now();
-      // Si el tiempo expiró mientras la ventana estuvo cerrada, finalizar automáticamente
       if (now >= pendingExam.endTime) {
         this.session.restore(pendingExam);
         const finalized = this.session.finalize();
@@ -179,7 +300,6 @@ class ExamApplication {
         return;
       }
 
-      // Si aún queda tiempo, mostrar aviso obligatorio de recuperación
       const answeredCount = Object.keys(pendingExam.answers || {}).length;
       const remainingFormatted = ExamSession.formatMMSS(pendingExam.endTime - now);
       const detailsEl = document.getElementById('recovery-details');
@@ -218,7 +338,6 @@ class ExamApplication {
       return;
     }
 
-    // Si no hay examen pendiente, comprobar si hay un resultado recién terminado guardado
     const lastResult = getLastResult();
     const recentBanner = document.getElementById('recent-result-banner');
     const recentText = document.getElementById('recent-result-text');
@@ -267,11 +386,22 @@ class ExamApplication {
     inputApellidos?.addEventListener('input', () => clearFieldError(inputApellidos, 'error-apellidos'));
     inputGrupo?.addEventListener('input', () => clearFieldError(inputGrupo, 'error-grupo'));
 
-    form?.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // Si el banco aún no había terminado de cargar, intentar cargarlo en este momento
       if (!this.questionBank || this.questionBank.length !== 50) {
-        this.showGlobalBanner('No se puede iniciar porque el banco de preguntas no está cargado correctamente.', 'danger');
-        return;
+        try {
+          this.questionBank = await loadQuestionBank('./data/questions.json');
+          this.session = new ExamSession(this.questionBank);
+          this.hideGlobalBanner();
+        } catch (err) {
+          this.showGlobalBanner(
+            'No se puede iniciar porque el banco de preguntas no está disponible: ' + err.message,
+            'danger'
+          );
+          return;
+        }
       }
 
       const nombre = (inputNombre?.value || '').trim();
@@ -325,11 +455,22 @@ class ExamApplication {
       this.switchView('view-identification');
     });
 
-    btnStartExam?.addEventListener('click', () => {
+    btnStartExam?.addEventListener('click', async () => {
       if (!this.identifiedStudent) {
         this.switchView('view-identification');
         return;
       }
+
+      if (!this.session || !this.questionBank || this.questionBank.length !== 50) {
+        try {
+          this.questionBank = await loadQuestionBank('./data/questions.json');
+          this.session = new ExamSession(this.questionBank);
+        } catch (err) {
+          this.showGlobalBanner('Error al cargar el examen: ' + err.message, 'danger');
+          return;
+        }
+      }
+
       // El temporizador empieza a contar exactamente en este instante
       this.session.startNew(this.identifiedStudent);
       this.startActiveExamUI();
@@ -436,7 +577,6 @@ class ExamApplication {
     const counts = this.session.getProgressCounts();
     const state = this.session.getState();
 
-    // Progreso superior
     const progressText = document.getElementById('exam-progress-label');
     if (progressText) {
       progressText.textContent = `Contestadas: ${counts.answered} de ${counts.total} · Sin contestar: ${counts.unanswered}`;
@@ -448,7 +588,6 @@ class ExamApplication {
       progressFill.style.width = `${pct}%`;
     }
 
-    // Cabecera de pregunta
     const badge = document.getElementById('question-number-badge');
     if (badge) {
       badge.textContent = `Pregunta ${qView.examPosition} de ${qView.totalQuestions}`;
@@ -466,7 +605,6 @@ class ExamApplication {
       statementEl.textContent = qView.questionText;
     }
 
-    // Opciones aleatorizadas
     const optionsList = document.getElementById('options-list');
     if (optionsList) {
       optionsList.innerHTML = '';
@@ -500,13 +638,11 @@ class ExamApplication {
       });
     }
 
-    // Botón Borrar respuesta
     const btnClear = document.getElementById('btn-clear-answer');
     if (btnClear) {
       btnClear.disabled = !qView.selectedOptionId;
     }
 
-    // Botones Anterior / Siguiente / Finalizar examen
     const btnPrev = document.getElementById('btn-prev-question');
     const btnNext = document.getElementById('btn-next-question');
     const btnFinishLast = document.getElementById('btn-finish-last');
@@ -550,10 +686,10 @@ class ExamApplication {
       this.openFinishConfirmationModal();
     });
 
-    // Atajos de teclado accesibles durante el examen
     document.addEventListener('keydown', (e) => {
       if (this.activeViewId !== 'view-exam') return;
       if (!document.getElementById('modal-finish')?.classList.contains('hidden')) return;
+      if (!document.getElementById('modal-teacher-login')?.classList.contains('hidden')) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       const tag = (e.target?.tagName || '').toLowerCase();
@@ -663,7 +799,6 @@ class ExamApplication {
     setMeta('res-count-incorrect', String(result.summary.incorrect));
     setMeta('res-count-unanswered', String(result.summary.unanswered));
 
-    // Actualizar contadores en los botones de filtro
     setMeta('filter-count-all', String(result.summary.totalQuestions));
     setMeta('filter-count-correct', String(result.summary.correct));
     setMeta('filter-count-incorrect', String(result.summary.incorrect));
@@ -724,7 +859,6 @@ class ExamApplication {
       const optsWrap = document.createElement('div');
       optsWrap.className = 'review-options';
 
-      // Las 4 opciones se muestran siempre en su orden original A, B, C, D
       q.options.forEach((opt) => {
         const row = document.createElement('div');
         row.className = 'review-option';
@@ -817,7 +951,6 @@ class ExamApplication {
   }
 
   bindModalEvents() {
-    // Modal de confirmación de finalización
     document.getElementById('btn-cancel-finish')?.addEventListener('click', () => {
       document.getElementById('modal-finish')?.classList.add('hidden');
     });
@@ -826,7 +959,6 @@ class ExamApplication {
       this.completeExam('manual');
     });
 
-    // Modal de detalle en panel del profesor
     document.getElementById('btn-close-teacher-detail')?.addEventListener('click', () => {
       document.getElementById('modal-teacher-detail')?.classList.add('hidden');
     });
@@ -837,7 +969,16 @@ class ExamApplication {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrapExamApp() {
+  if (window.__EXAM_APP_BOOTED__) return;
+  window.__EXAM_APP_BOOTED__ = true;
   const app = new ExamApplication();
+  window.__examApp = app;
   app.init();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapExamApp);
+} else {
+  bootstrapExamApp();
+}

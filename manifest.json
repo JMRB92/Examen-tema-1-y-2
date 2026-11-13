@@ -1,6 +1,7 @@
 {
   "name": "Evaluación Tipo Test — 50 Preguntas",
   "short_name": "Examen Test",
+  "version": "1.01",
   "description": "Aplicación web educativa para exámenes tipo test de 50 preguntas con funcionamiento sin conexión y generación local de PDF.",
   "start_url": "./index.html",
   "scope": "./",

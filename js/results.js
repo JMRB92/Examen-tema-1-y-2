@@ -143,7 +143,7 @@ export function evaluateExam(examState, questionBank, finishedAt = Date.now(), f
   const score = calculateScore(correct, incorrect);
 
   return {
-    schemaVersion: '1.0',
+    schemaVersion: '1.01',
     attemptId: examState.attemptId,
     student: {
       nombre: examState.student.nombre,

@@ -131,3 +131,14 @@ El banco de preguntas es completamente independiente del código JavaScript. Cad
 - La aplicación **no envía datos a ningún servidor**, no usa analítica, cookies de seguimiento ni servicios de IA externos.
 - Toda la información (examen en curso del alumno y resultados importados por el profesor) se guarda exclusivamente en `localStorage` del navegador. Si se borra la caché o los datos del sitio, se perderán los registros locales, por lo que se recomienda descargar siempre los archivos **PDF**, **JSON** y **CSV**.
 - **Nota técnica de transparencia**: al tratarse de una aplicación web estática ejecutada íntegramente en el navegador sin servidor backend, el archivo `data/questions.json` debe descargarse en el dispositivo del usuario para corregir el examen. Por ello, este sistema está concebido para entornos educativos supervisados y autoevaluación, y no puede impedir que un usuario con conocimientos técnicos inspeccione los archivos estáticos descargados por el navegador.
+
+---
+
+## Historial de versiones
+
+- **Versión 1.01**:
+  - Añadida autenticación por usuario y contraseña (`jmramirezb03` / `123456789`) y cierre de sesión para acceder al **Panel del profesor**.
+  - Compatibilidad dual garantizada tanto en servidores web / GitHub Pages (`https://`) como mediante apertura directa desde archivo local (`file://`) gracias al respaldo sincronizado `data/questions-fallback.js` y `js/app-standalone.js`.
+  - Indicador de **Versión 1.01** visible en el pie de página de la aplicación.
+- **Versión 1.00**:
+  - Lanzamiento inicial de la aplicación de exámenes tipo test de 50 preguntas con temporizador real de 30 minutos, recuperación tras recarga, generación local de PDF y panel docente con exportación a CSV.

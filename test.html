@@ -89,12 +89,14 @@
     </div>
   </main>
 
+  <footer class="app-footer"><div class="footer-inner"><span>Suite de verificación funcional · <strong>Versión 1.01</strong></span><a href="./index.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">Volver a la aplicación</a></div></footer>
+
   <script type="module">
     import { loadQuestionBank, validateQuestionBank, createShuffledExamPlan } from './js/questions.js';
     import { ExamSession } from './js/exam.js';
     import { calculateScore, evaluateExam } from './js/results.js';
     import { buildResultPdfBytes, downloadResultPDF } from './js/pdf.js';
-    import { mergeImportedResults, buildTeacherCSV } from './js/teacher.js';
+    import { mergeImportedResults, buildTeacherCSV, verifyTeacherCredentials } from './js/teacher.js';
     import { saveActiveExam, getActiveExam, clearActiveExam } from './js/storage.js';
 
     let loadedBank = null;
@@ -293,6 +295,14 @@
         assert(csv.startsWith('﻿Nombre;Apellidos;Grupo;'), 'El CSV debe incluir BOM UTF-8 y cabeceras estándar.');
         assert(csv.includes('Elena;Sanz;2B') && csv.includes('Mario;López;2B'), 'El CSV debe contener ambos alumnos.');
         return 'Deduplicación por attemptId y generación de CSV compatible con Excel verificadas.';
+      });
+
+      addTest('11. Autenticación del Panel del profesor (usuario y contraseña)', () => {
+        assert(verifyTeacherCredentials('jmramirezb03', '123456789'), 'Debe aceptar credenciales válidas.');
+        assert(!verifyTeacherCredentials('jmramirezb03', '000000000'), 'Debe rechazar contraseña incorrecta.');
+        assert(!verifyTeacherCredentials('otro_usuario', '123456789'), 'Debe rechazar usuario incorrecto.');
+        assert(!verifyTeacherCredentials('', ''), 'Debe rechazar campos vacíos.');
+        return 'Control de acceso docente (jmramirezb03) verificado correctamente.';
       });
 
       let passed = 0;

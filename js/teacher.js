@@ -12,6 +12,24 @@
 import { getTeacherResults, saveTeacherResults } from './storage.js';
 import { downloadResultPDF } from './pdf.js';
 
+export const TEACHER_CREDENTIALS = Object.freeze({
+  username: 'jmramirezb03',
+  password: '123456789'
+});
+
+/**
+ * Verifica las credenciales de acceso al Panel del profesor.
+ * @param {string} username
+ * @param {string} password
+ * @returns {boolean}
+ */
+export function verifyTeacherCredentials(username, password) {
+  return (
+    String(username ?? '').trim() === TEACHER_CREDENTIALS.username &&
+    String(password ?? '') === TEACHER_CREDENTIALS.password
+  );
+}
+
 /**
  * Valida que un archivo JSON importado corresponda a un resultado de examen válido.
  * @param {unknown} data
@@ -92,7 +110,8 @@ export function buildTeacherCSV(records) {
   const escapeCSV = (val) => {
     const str = String(val ?? '');
     if (str.includes(';') || str.includes('"') || str.includes('
-') || str.includes('')) {
+') || str.includes('
+')) {
       return `"${str.replace(/"/g, '""')}"`;
     }
     return str;

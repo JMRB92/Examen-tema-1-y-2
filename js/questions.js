@@ -2,6 +2,7 @@
  * questions.js
  * Carga, validación estricta del banco de 50 preguntas y aleatorización
  * independiente de preguntas y opciones manteniendo la trazabilidad de identificadores.
+ * Versión 1.01
  */
 
 export const EXPECTED_QUESTION_COUNT = 50;
@@ -9,35 +10,39 @@ export const DISPLAY_LETTERS = ['A', 'B', 'C', 'D'];
 
 /**
  * Carga el banco de preguntas desde ./data/questions.json y lo valida.
+ * Si se ejecuta directamente desde archivo local (file://) donde el navegador bloquea fetch(),
+ * utiliza automáticamente el respaldo sincronizado window.__FALLBACK_QUESTIONS__.
  * @param {string} url
  * @returns {Promise<Array<object>>}
  */
 export async function loadQuestionBank(url = './data/questions.json') {
-  let response;
+  let data = null;
+  let fetchError = null;
+
   try {
-    response = await fetch(url, { cache: 'no-cache' });
-  } catch (networkErr) {
-    // Si falla con no-cache en modo offline puro, reintentar con caché estándar del Service Worker
+    let response;
     try {
+      response = await fetch(url, { cache: 'no-cache' });
+    } catch (networkErr) {
       response = await fetch(url);
-    } catch (offlineErr) {
-      throw new Error(
-        'No se pudo cargar el archivo de preguntas (data/questions.json). ' +
-        'Si estás abriendo index.html directamente desde el explorador de archivos (file://), ' +
-        'ábrelo mediante GitHub Pages o un servidor web local.'
-      );
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Error HTTP ${response ? response.status : 'desconocido'} al cargar preguntas.`);
+    }
+    data = await response.json();
+  } catch (err) {
+    fetchError = err;
+    if (typeof window !== 'undefined' && Array.isArray(window.__FALLBACK_QUESTIONS__)) {
+      data = window.__FALLBACK_QUESTIONS__;
     }
   }
 
-  if (!response.ok) {
-    throw new Error(`Error al obtener el banco de preguntas (HTTP ${response.status}).`);
-  }
-
-  let data;
-  try {
-    data = await response.json();
-  } catch (parseErr) {
-    throw new Error('El archivo data/questions.json no tiene un formato JSON válido.');
+  if (!data) {
+    throw new Error(
+      fetchError?.message ||
+      'No se pudo cargar el archivo de preguntas (data/questions.json).'
+    );
   }
 
   const validation = validateQuestionBank(data);
@@ -136,7 +141,6 @@ export function validateQuestionBank(data) {
 
 /**
  * Devuelve un entero aleatorio uniforme en el rango [0, maxExclusive - 1].
- * Utiliza crypto.getRandomValues cuando está disponible para evitar sesgos.
  * @param {number} maxExclusive
  * @returns {number}
  */
@@ -172,11 +176,7 @@ export function shuffleArray(items) {
 }
 
 /**
- * Genera el plan aleatorizado completo para un intento de examen:
- * 1. Mezcla las 50 preguntas sin repeticiones ni omisiones.
- * 2. Mezcla independientemente las 4 opciones de cada pregunta.
- * 3. Conserva el vínculo entre la letra visual del examen (A-D) y el ID original de la opción.
- *
+ * Genera el plan aleatorizado completo para un intento de examen.
  * @param {Array<object>} questionBank
  * @returns {Array<{
  *   examPosition: number,

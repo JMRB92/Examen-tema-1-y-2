@@ -1,10 +1,10 @@
 /**
  * sw.js
  * Service Worker para funcionamiento 100 % sin conexión tras la primera carga.
- * Compatible con GitHub Pages (rutas relativas).
+ * Versión 1.01 — Compatible con GitHub Pages (rutas relativas).
  */
 
-const CACHE_NAME = 'examen-test-offline-v1';
+const CACHE_NAME = 'examen-test-offline-v1.01';
 
 const PRECACHE_ASSETS = [
   './',
@@ -13,6 +13,7 @@ const PRECACHE_ASSETS = [
   './manifest.json',
   './css/styles.css',
   './js/app.js',
+  './js/app-standalone.js',
   './js/exam.js',
   './js/questions.js',
   './js/results.js',
@@ -20,6 +21,7 @@ const PRECACHE_ASSETS = [
   './js/pdf.js',
   './js/teacher.js',
   './data/questions.json',
+  './data/questions-fallback.js',
   './assets/logo.png',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png'
@@ -51,7 +53,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {
-        // Actualizar caché en segundo plano si hay conexión
         fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.ok) {
