@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="description" content="Aplicación web educativa para exámenes tipo test de 50 preguntas con funcionamiento sin conexión y generación local de PDF.">
+  <title>Evaluación Tipo Test — IA, Seguridad y Ética Digital</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./assets/logo.png">
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <!-- CABECERA INSTITUCIONAL -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <img src="./assets/logo.png" alt="Logotipo de Evaluación Tipo Test" class="brand-logo" width="38" height="38">
+        <div>
+          <h1 class="brand-title">Evaluación Tipo Test</h1>
+          <p class="brand-subtitle">Inteligencia Artificial, Seguridad, Privacidad y Ética Digital</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <span id="connection-badge" class="connection-badge" aria-live="polite">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <span id="connection-text">Listo sin conexión</span>
+        </span>
+        <button type="button" id="btn-open-teacher" class="btn btn-secondary btn-sm">
+          Panel del profesor
+        </button>
+        <button type="button" id="btn-back-student" class="btn btn-secondary btn-sm hidden">
+          Volver al examen
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="app-main">
+    <div id="global-banner" class="alert alert-info hidden" role="alert"></div>
+
+    <!-- =====================================================================
+         1. PANTALLA DE IDENTIFICACIÓN DEL ALUMNO
+         ===================================================================== -->
+    <section id="view-identification" class="view-section" aria-labelledby="id-heading">
+      <div class="card card-narrow">
+        <div id="recent-result-banner" class="alert alert-info hidden">
+          <p id="recent-result-text" style="margin: 0 0 0.65rem;"></p>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" id="btn-view-recent-result" class="btn btn-primary btn-sm">
+              Ver último resultado
+            </button>
+            <button type="button" id="btn-dismiss-recent-result" class="btn btn-secondary btn-sm">
+              Descartar
+            </button>
+          </div>
+        </div>
+
+        <div class="card-header">
+          <h2 id="id-heading" class="card-title">Identificación del alumno</h2>
+          <p class="card-description">
+            Introduce tus datos identificativos para acceder a las instrucciones del examen.
+          </p>
+        </div>
+
+        <form id="identification-form" novalidate>
+          <div class="form-group">
+            <label for="input-nombre" class="form-label">
+              Nombre <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="text"
+              id="input-nombre"
+              name="nombre"
+              class="form-input"
+              autocomplete="given-name"
+              placeholder="Ej.: Laura"
+              required
+            >
+            <p id="error-nombre" class="field-error hidden">Por favor, introduce tu nombre.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="input-apellidos" class="form-label">
+              Apellidos <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="text"
+              id="input-apellidos"
+              name="apellidos"
+              class="form-input"
+              autocomplete="family-name"
+              placeholder="Ej.: García Martínez"
+              required
+            >
+            <p id="error-apellidos" class="field-error hidden">Por favor, introduce tus apellidos.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="input-grupo" class="form-label">
+              Grupo <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <input
+              type="text"
+              id="input-grupo"
+              name="grupo"
+              class="form-input"
+              placeholder="Ej.: 1.º Bachillerato A"
+              required
+            >
+            <p id="error-grupo" class="field-error hidden">Por favor, indica tu grupo.</p>
+          </div>
+
+          <button type="submit" id="btn-accept-id" class="btn btn-primary btn-lg btn-block">
+            Aceptar
+          </button>
+        </form>
+
+        <aside class="privacy-box" aria-label="Aviso de privacidad y almacenamiento local">
+          <strong>Privacidad y almacenamiento local</strong>
+          <ul>
+            <li>Todos tus datos y respuestas se guardan exclusivamente en este navegador (<code>localStorage</code>) y <strong>no se envían a ningún servidor externo, nube ni servicio de IA</strong>.</li>
+            <li>Si borras los datos de navegación, la caché o el almacenamiento local, se perderán los exámenes guardados en este dispositivo.</li>
+            <li>Al finalizar, descarga tu informe en <strong>PDF</strong> y tu archivo <strong>JSON</strong> para conservar una copia de seguridad y entregarlo al profesor.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         2. PANTALLA DE INSTRUCCIONES DEL EXAMEN
+         ===================================================================== -->
+    <section id="view-instructions" class="view-section hidden" aria-labelledby="instructions-heading">
+      <div class="card card-medium">
+        <div class="card-header">
+          <h2 id="instructions-heading" class="card-title">Instrucciones del examen</h2>
+          <p class="card-description">
+            Lee detenidamente las condiciones de realización y puntuación antes de pulsar «Comenzar examen».
+          </p>
+        </div>
+
+        <div class="student-pill-bar">
+          <div class="student-pill-info">
+            <strong>Alumno/a identificado:</strong> <span id="instructions-student-summary"></span>
+          </div>
+          <button type="button" id="btn-edit-student" class="btn btn-secondary btn-sm">
+            Modificar datos
+          </button>
+        </div>
+
+        <div class="rules-grid">
+          <div class="rule-stat">
+            <div class="rule-stat-label">Preguntas</div>
+            <div class="rule-stat-value">50 tipo test</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-label">Duración máxima</div>
+            <div class="rule-stat-value">30 minutos</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-label">Acierto / Error / Blanco</div>
+            <div class="rule-stat-value">+0,20 / −0,05 / 0</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-label">Escala de nota</div>
+            <div class="rule-stat-value">0 a 10 puntos</div>
+          </div>
+        </div>
+
+        <ul class="instructions-list">
+          <li>El examen consta de <strong>50 preguntas</strong> con <strong>cuatro respuestas posibles</strong> cada una.</li>
+          <li>Solo existe <strong>una respuesta correcta</strong> por pregunta.</li>
+          <li>Tanto el orden de las preguntas como el de sus cuatro opciones se presentan de forma <strong>aleatoria</strong>.</li>
+          <li>La duración máxima es de <strong>30 minutos</strong>. El tiempo empezará a contar exactamente al pulsar <strong>«Comenzar examen»</strong>.</li>
+          <li><strong>Criterios de calificación:</strong>
+            <ul>
+              <li>Las respuestas correctas suman <strong>0,20 puntos</strong>.</li>
+              <li>Las respuestas incorrectas restan <strong>0,05 puntos</strong>.</li>
+              <li>Las preguntas sin contestar <strong>no suman ni restan</strong> (0 puntos).</li>
+              <li>La nota mínima es <strong>0</strong> y la nota máxima es <strong>10</strong>.</li>
+            </ul>
+          </li>
+          <li>El examen <strong>finaliza automáticamente</strong> cuando termina el tiempo establecido.</li>
+          <li>Una vez finalizado, se mostrarán los resultados completos ordenados del 1 al 50 y podrás descargarlos en PDF y JSON.</li>
+        </ul>
+
+        <div class="instructions-actions">
+          <span style="font-size: 0.88rem; color: var(--text-muted);">
+            El cronómetro no se detiene al recargar la página.
+          </span>
+          <button type="button" id="btn-start-exam" class="btn btn-primary btn-lg">
+            Comenzar examen
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         3. PANTALLA DE REALIZACIÓN DEL EXAMEN
+         ===================================================================== -->
+    <section id="view-exam" class="view-section hidden" aria-labelledby="question-statement">
+      <div class="exam-top-bar">
+        <div class="exam-student-meta">
+          <span id="exam-student-label" class="exam-student-name"></span>
+          <span id="exam-progress-label" class="exam-progress-text">Contestadas: 0 de 50 · Sin contestar: 50</span>
+        </div>
+
+        <div id="timer-box" class="timer-box" role="timer" aria-live="off" aria-label="Tiempo restante">
+          <span class="timer-label">Tiempo restante:</span>
+          <span id="timer-value" class="timer-value">30:00</span>
+        </div>
+      </div>
+
+      <div id="exam-time-alert" class="alert alert-warning hidden" role="alert"></div>
+
+      <div class="progress-track" aria-hidden="true">
+        <div id="exam-progress-fill" class="progress-fill"></div>
+      </div>
+
+      <div class="exam-layout">
+        <!-- Tarjeta de pregunta individual -->
+        <article class="question-card">
+          <div class="question-meta-header">
+            <span id="question-number-badge" class="question-badge">Pregunta 1 de 50</span>
+            <span id="question-status-pill" class="question-status-pill unanswered">Sin contestar</span>
+          </div>
+
+          <h2 id="question-statement" class="question-statement"></h2>
+
+          <div id="options-list" class="options-list" role="radiogroup" aria-labelledby="question-statement"></div>
+
+          <div class="question-footer-actions">
+            <button type="button" id="btn-clear-answer" class="btn btn-secondary" disabled>
+              Borrar respuesta
+            </button>
+
+            <div class="nav-pair">
+              <button type="button" id="btn-prev-question" class="btn btn-secondary">
+                ← Anterior
+              </button>
+              <button type="button" id="btn-next-question" class="btn btn-primary">
+                Siguiente →
+              </button>
+              <button type="button" id="btn-finish-last" class="btn btn-success hidden">
+                Finalizar examen
+              </button>
+            </div>
+          </div>
+
+          <p class="keyboard-hint">
+            Atajos de teclado: teclas <strong>A, B, C, D</strong> (o <strong>1–4</strong>) para responder, <strong>Supr</strong> para borrar respuesta y flechas <strong>← / →</strong> para navegar.
+          </p>
+        </article>
+
+        <!-- Cuadrícula de acceso rápido 1..50 -->
+        <aside class="navigator-panel" aria-label="Listado rápido de preguntas">
+          <h3 class="navigator-title">Navegación de preguntas</h3>
+
+          <div class="navigator-legend">
+            <span class="legend-item"><span class="legend-dot unanswered"></span> Sin contestar</span>
+            <span class="legend-item"><span class="legend-dot answered"></span> Contestada</span>
+            <span class="legend-item"><span class="legend-dot current"></span> Actual</span>
+          </div>
+
+          <div id="question-grid" class="question-grid"></div>
+
+          <div class="navigator-finish-wrap">
+            <button type="button" id="btn-finish-sidebar" class="btn btn-secondary btn-block">
+              Finalizar examen
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         4. PANTALLA DE RESULTADOS
+         ===================================================================== -->
+    <section id="view-results" class="view-section hidden" aria-labelledby="results-heading">
+      <h2 id="results-heading" class="sr-only">Resultados del examen</h2>
+
+      <div class="results-hero">
+        <div id="result-score-box" class="score-showcase">
+          <div class="score-showcase-label">Nota final</div>
+          <div id="result-score-value" class="score-showcase-value">0,00</div>
+          <div class="score-showcase-scale">sobre 10 puntos</div>
+        </div>
+
+        <div class="results-meta-grid">
+          <div class="meta-item">
+            <div class="meta-item-label">Alumno/a</div>
+            <div id="res-student-name" class="meta-item-value">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-item-label">Grupo</div>
+            <div id="res-student-group" class="meta-item-value">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-item-label">Fecha de realización</div>
+            <div id="res-date" class="meta-item-value">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-item-label">Hora de inicio</div>
+            <div id="res-start-time" class="meta-item-value">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-item-label">Hora de finalización</div>
+            <div id="res-end-time" class="meta-item-value">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-item-label">Tiempo empleado</div>
+            <div id="res-elapsed-time" class="meta-item-value">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="breakdown-bar">
+        <div class="breakdown-card correct">
+          <div id="res-count-correct" class="breakdown-number">0</div>
+          <div class="breakdown-label">Aciertos (+0,20 pts)</div>
+        </div>
+        <div class="breakdown-card incorrect">
+          <div id="res-count-incorrect" class="breakdown-number">0</div>
+          <div class="breakdown-label">Errores (−0,05 pts)</div>
+        </div>
+        <div class="breakdown-card unanswered">
+          <div id="res-count-unanswered" class="breakdown-number">0</div>
+          <div class="breakdown-label">Sin contestar (0 pts)</div>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button type="button" id="btn-download-pdf" class="btn btn-primary btn-lg">
+          Descargar resultados en PDF
+        </button>
+        <button type="button" id="btn-download-json" class="btn btn-secondary btn-lg">
+          Descargar archivo JSON (para el profesor)
+        </button>
+        <button type="button" id="btn-new-exam" class="btn btn-ghost">
+          Realizar nuevo examen
+        </button>
+      </div>
+
+      <div class="review-toolbar">
+        <h3 style="margin: 0; font-size: 1.2rem;">
+          Revisión completa de las 50 preguntas (orden original)
+        </h3>
+
+        <div class="filter-pills" role="group" aria-label="Filtrar preguntas revisadas">
+          <button type="button" class="filter-pill active" data-review-filter="all">
+            Todas (<span id="filter-count-all">50</span>)
+          </button>
+          <button type="button" class="filter-pill" data-review-filter="correct">
+            Correctas (<span id="filter-count-correct">0</span>)
+          </button>
+          <button type="button" class="filter-pill" data-review-filter="incorrect">
+            Incorrectas (<span id="filter-count-incorrect">0</span>)
+          </button>
+          <button type="button" class="filter-pill" data-review-filter="unanswered">
+            Sin contestar (<span id="filter-count-unanswered">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <div id="results-review-list" class="review-list"></div>
+    </section>
+
+    <!-- =====================================================================
+         5. PANEL DEL PROFESOR (INDEPENDIENTE)
+         ===================================================================== -->
+    <section id="view-teacher" class="view-section hidden" aria-labelledby="teacher-heading">
+      <div class="card">
+        <div class="teacher-header-bar">
+          <div>
+            <h2 id="teacher-heading" class="card-title">Panel del profesor</h2>
+            <p class="card-description">
+              Importa los archivos JSON generados por el alumnado, consulta sus correcciones y exporta el acta a CSV (Excel).
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <button type="button" id="btn-teacher-export-csv" class="btn btn-success" disabled>
+              Exportar a CSV (Excel)
+            </button>
+            <button type="button" id="btn-teacher-clear-all" class="btn btn-danger btn-sm" disabled>
+              Vaciar listado
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="teacher-dropzone"
+          class="dropzone"
+          role="button"
+          tabindex="0"
+          aria-label="Seleccionar o arrastrar archivos JSON de resultados"
+        >
+          <p class="dropzone-title">Importar resultados del alumnado (.json)</p>
+          <p class="dropzone-sub">
+            Arrastra aquí varios archivos JSON simultáneamente o pulsa el botón para seleccionarlos.
+            Los intentos duplicados se detectan y omiten automáticamente.
+          </p>
+          <button type="button" id="btn-teacher-select-files" class="btn btn-primary">
+            Seleccionar archivos JSON
+          </button>
+          <input
+            type="file"
+            id="teacher-file-input"
+            accept=".json,application/json"
+            multiple
+            class="sr-only"
+          >
+        </div>
+
+        <div id="teacher-feedback" class="alert alert-info hidden" role="status"></div>
+
+        <div class="teacher-stats-grid">
+          <div class="rule-stat">
+            <div class="rule-stat-label">Exámenes importados</div>
+            <div id="teacher-stat-total" class="rule-stat-value">0</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-label">Nota media</div>
+            <div id="teacher-stat-avg" class="rule-stat-value">0,00</div>
+          </div>
+          <div class="rule-stat">
+            <div class="rule-stat-label">Aprobados (≥ 5,00)</div>
+            <div id="teacher-stat-pass" class="rule-stat-value">0 / 0</div>
+          </div>
+        </div>
+
+        <div class="teacher-controls">
+          <input
+            type="search"
+            id="teacher-search-input"
+            class="form-input teacher-search"
+            placeholder="Buscar por nombre, apellidos o grupo..."
+            aria-label="Buscar alumno o grupo"
+          >
+          <span style="font-size: 0.85rem; color: var(--text-muted);">
+            Pulsa en las cabeceras de la tabla para ordenar por nombre, grupo, fecha o nota.
+          </span>
+        </div>
+
+        <div id="teacher-empty-state" class="alert alert-info">
+          Aún no hay resultados importados. Selecciona o arrastra uno o varios archivos JSON descargados por los alumnos.
+        </div>
+
+        <div id="teacher-table-wrap" class="table-responsive hidden">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" class="sort-btn" data-sort-field="name">
+                    Nombre <span class="sort-indicator">⇅</span>
+                  </button>
+                </th>
+                <th>Apellidos</th>
+                <th>
+                  <button type="button" class="sort-btn" data-sort-field="group">
+                    Grupo <span class="sort-indicator">⇅</span>
+                  </button>
+                </th>
+                <th>
+                  <button type="button" class="sort-btn" data-sort-field="date">
+                    Fecha <span class="sort-indicator">▼</span>
+                  </button>
+                </th>
+                <th>Aciertos</th>
+                <th>Errores</th>
+                <th>Sin contestar</th>
+                <th>
+                  <button type="button" class="sort-btn" data-sort-field="score">
+                    Nota <span class="sort-indicator">⇅</span>
+                  </button>
+                </th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="teacher-table-body"></tbody>
+          </table>
+        </div>
+
+        <aside class="privacy-box">
+          <strong>Almacenamiento local del profesor</strong>
+          <ul>
+            <li>Los resultados importados se conservan únicamente en el almacenamiento local de este navegador y no se transmiten a ningún servidor.</li>
+            <li>Si borras los datos del navegador o cambias de equipo, deberás volver a importar los archivos JSON o conservar una copia exportada en <strong>CSV</strong>.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <!-- =======================================================================
+       MODALES (RECUPERACIÓN, CONFIRMACIÓN DE CIERRE Y DETALLE PROFESOR)
+       ======================================================================= -->
+
+  <!-- Modal 1: Recuperación de examen pendiente -->
+  <div id="modal-recovery" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="recovery-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="recovery-title" class="modal-title">Tienes un examen pendiente. ¿Quieres continuar donde lo dejaste?</h3>
+      </div>
+      <div class="modal-body">
+        <p id="recovery-details" style="margin-top: 0;"></p>
+        <p style="margin-bottom: 0; font-size: 0.9rem; color: var(--text-secondary);">
+          Si continúas, recuperarás exactamente las mismas preguntas, el mismo orden de opciones y todas las respuestas marcadas hasta ahora. El tiempo sigue contando desde el inicio real del intento.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-recovery-abandon" class="btn btn-danger">
+          Abandonar examen
+        </button>
+        <button type="button" id="btn-recovery-continue" class="btn btn-primary">
+          Continuar examen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Confirmación de finalización del examen -->
+  <div id="modal-finish" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="finish-modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="finish-modal-title" class="modal-title">Finalizar examen</h3>
+      </div>
+      <div class="modal-body">
+        <p style="margin-top: 0; font-weight: 600;">
+          ¿Seguro que quieres finalizar el examen? No podrás modificar tus respuestas después.
+        </p>
+        <div id="finish-modal-counts" class="alert alert-info" style="margin-bottom: 0;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-cancel-finish" class="btn btn-secondary">
+          Cancelar y volver al examen
+        </button>
+        <button type="button" id="btn-confirm-finish" class="btn btn-success">
+          Confirmar y finalizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Detalle de examen en Panel del profesor -->
+  <div id="modal-teacher-detail" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="teacher-detail-title">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3 id="teacher-detail-title" class="modal-title">Detalle del examen</h3>
+        <button type="button" id="btn-close-teacher-detail" class="btn btn-ghost btn-sm" aria-label="Cerrar ventana">
+          ✕
+        </button>
+      </div>
+      <div id="teacher-detail-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" id="btn-teacher-detail-pdf" class="btn btn-primary">
+          Descargar PDF del alumno
+        </button>
+        <button type="button" id="btn-close-teacher-detail-footer" class="btn btn-secondary">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIE DE PÁGINA -->
+  <footer class="app-footer">
+    <div class="footer-inner">
+      <span>Aplicación web estática de evaluación educativa · Sin servidores externos ni seguimiento.</span>
+      <a href="./test.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">
+        Pruebas funcionales (test.html)
+      </a>
+    </div>
+  </footer>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
