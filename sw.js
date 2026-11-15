@@ -1,5 +1,5 @@
 /* Almacenamiento en caché de recursos públicos; sin datos del alumno. */
-const CACHE = 'examen-test-publico-v102-20261115';
+const CACHE = 'examen-test-publico-v103-20261115';
 const RESOURCES = ['./index.html', './data/questions.json'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(RESOURCES)).then(() => self.skipWaiting()));

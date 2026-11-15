@@ -323,7 +323,7 @@
   },
   {
     "id": 15,
-    "question": "¿Cómo se define el ciclo operativo fundamental de un sistema inteligente que interactúa con el entorno?",
+    "question": "En un sistema inteligente que aprende de los resultados de sus acciones, ¿qué secuencia describe su funcionamiento?",
     "options": [
       {
         "id": "A",
@@ -649,7 +649,7 @@
     "options": [
       {
         "id": "A",
-        "text": "Es más sencilla de recordar para el usuario y ofrece mayor resistencia matemática frente a los ataques de fuerza bruta debido a su longitud."
+        "text": "Ofrece mayor resistencia a los ataques de fuerza bruta debido a su longitud."
       },
       {
         "id": "B",
@@ -699,7 +699,7 @@
       },
       {
         "id": "B",
-        "text": "Generar claves aleatorias y robustas, almacenarlas cifradas y permitir usar una distinta en cada servicio sin tener que memorizarlas."
+        "text": "Generar claves aleatorias y robustas, guardarlas de forma segura y permitir usar una distinta en cada servicio sin tener que memorizarlas."
       },
       {
         "id": "C",
@@ -1113,7 +1113,7 @@
       },
       {
         "id": "B",
-        "text": "Los centros de datos, redes y consultas a modelos complejos consumen grandes cantidades de energía, por lo que hacer consultas innecesarias incrementa la huella de carbono digital."
+        "text": "La actividad digital, incluidos los centros de datos, las redes y los modelos de IA, consume energía. Evitar consultas innecesarias ayuda a reducir su impacto ambiental."
       },
       {
         "id": "C",

@@ -1,6 +1,18 @@
-# EXAMEN TEST — Inteligencia Artificial, versión 1.02
+# EXAMEN TEST — Inteligencia Artificial, versión 1.03
 
-Aplicación **reconstruida desde cero** para exámenes locales de 50 preguntas. El alumno se identifica, realiza el test y **descarga un PDF para entregarlo manualmente**. No existe panel del profesor ni envío automático de resultados.
+Aplicación web de examen local para exámenes locales de 50 preguntas. El alumno se identifica, realiza el test y **descarga un PDF para entregarlo manualmente**. No existe panel del profesor ni envío automático de resultados.
+
+
+## Cambios de la versión 1.03 (ajuste al temario)
+
+Se han modificado **únicamente** las preguntas originales 15, 29, 31 y 49 para ajustarlas a las presentaciones proporcionadas:
+
+- **15:** el enunciado especifica que se trata de un sistema que aprende de los resultados de sus acciones (en el temario el aprendizaje no está presente en todos los sistemas).
+- **29:** se ha eliminado la afirmación no explícita sobre la facilidad de recordar las frases largas.
+- **31:** «almacenarlas cifradas» se sustituye por «guardarlas de forma segura», tal como explica el material.
+- **49:** se elimina la valoración no cuantificada sobre la cantidad de energía consumida y se mantiene la relación entre actividad digital y sostenibilidad.
+
+Las otras 46 preguntas, las 50 claves correctas y el funcionamiento del examen siguen intactos. Como cambió la versión del almacenamiento local, los intentos iniciados en la v1.02 no se transfieren automáticamente a la v1.03: termina los exámenes en curso antes de actualizar.
 
 ## Publicar en GitHub Pages
 
